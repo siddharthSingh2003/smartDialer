@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: dialer
+      POSTGRES_PASSWORD: dialer
+      POSTGRES_DB: dialer
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dialer"]
+      interval: 2s
+      retries: 15
+    volumes:
+      - smartdialer_pgdata:/var/lib/postgresql/data
+
+volumes:
+  smartdialer_pgdata:
