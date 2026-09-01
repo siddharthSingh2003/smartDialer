@@ -1,0 +1,11 @@
+# Runtime dependencies, pinned to the versions this project was built and
+# tested against (see pyproject.toml for the same set with >= constraints,
+# which is the canonical spec — this file is for tools/workflows that expect
+# a plain requirements.txt instead of `pip install -e .`).
+asyncpg==0.31.0
+fastapi==0.141.1
+uvicorn==0.52.4
+typer==0.27.2
+pydantic==2.13.5
+matplotlib==3.11.1
+httpx==0.28.1

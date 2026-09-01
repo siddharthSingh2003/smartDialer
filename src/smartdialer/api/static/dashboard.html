@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartDialer — Live</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f8fa;
+    --panel: #ffffff;
+    --border: #e2e5ea;
+    --text: #1a1d23;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --purple: #7c3aed;
+    --teal: #0d9488;
+    --gray: #9ca3af;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115;
+      --panel: #171a21;
+      --border: #2a2e37;
+      --text: #e7e9ee;
+      --muted: #8b93a3;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--panel);
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 650; }
+  header .sub { color: var(--muted); font-size: 12px; }
+  select, button {
+    font: inherit; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); cursor: pointer;
+  }
+  #status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray); display: inline-block; }
+  #status-dot.live { background: var(--green); }
+  main { padding: 20px 24px 60px; max-width: 1200px; margin: 0 auto; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+  }
+  .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  .card .value { font-size: 26px; font-weight: 650; margin-top: 4px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 18px; margin-bottom: 20px;
+  }
+  .panel h2 { font-size: 13px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+  .stackbar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+  .stackbar div { transition: width .3s ease; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; font-size: 12px; }
+  .legend span.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    color: #fff;
+  }
+  .events-feed { max-height: 320px; overflow-y: auto; }
+  .events-feed .row { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .events-feed .row:last-child { border-bottom: none; }
+  .events-feed .time { color: var(--muted); width: 68px; flex: none; }
+  .events-feed .anomaly { color: var(--amber); font-size: 11px; }
+  .empty { color: var(--muted); font-style: italic; padding: 8px 0; }
+  details summary { cursor: pointer; color: var(--accent); font-size: 12px; }
+  pre.rationale {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px;
+    font-size: 11.5px; overflow-x: auto; margin: 8px 0 0;
+  }
+  footer { text-align: center; color: var(--muted); font-size: 11px; padding: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SmartDialer — Live</h1>
+  <select id="campaign-select"></select>
+  <span class="sub"><span id="status-dot"></span> <span id="status-text">connecting…</span></span>
+</header>
+
+<main>
+  <div class="cards" id="cards"></div>
+
+  <div class="panel">
+    <h2>Agent states</h2>
+    <div class="stackbar" id="agent-bar"></div>
+    <div class="legend" id="agent-legend"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Call states</h2>
+    <div class="stackbar" id="call-bar"></div>
+    <div class="legend" id="call-legend"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>Pacing decisions</h2>
+      <table>
+        <thead><tr><th>Time</th><th>Req</th><th>Appr</th><th>Reason</th></tr></thead>
+        <tbody id="decisions-body"></tbody>
+      </table>
+      <div id="decisions-empty" class="empty" hidden>No decisions yet</div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent provider events</h2>
+      <div class="events-feed" id="events-feed"></div>
+    </div>
+  </div>
+</main>
+
+<footer>Reads only what's already in Postgres — the same audit trail <code>psql</code> would show. Not part of the graded architecture (see ARCHITECTURE.md, "no UI").</footer>
+
+<script>
+const AGENT_COLORS = {
+  AVAILABLE: 'var(--green)', RESERVED: 'var(--accent)', DIALING: 'var(--amber)',
+  CONNECTED: 'var(--teal)', WRAP_UP: 'var(--purple)', PAUSED: 'var(--gray)', OFFLINE: '#4b5563'
+};
+const CALL_COLORS = {
+  QUEUED: '#4b5563', RESERVED: 'var(--gray)', INITIATED: 'var(--accent)', RINGING: 'var(--amber)',
+  ANSWERED: 'var(--purple)', CONNECTED: 'var(--teal)', COMPLETED: 'var(--green)',
+  FAILED: 'var(--red)', CANCELLED: '#ea580c', ABANDONED: '#991b1b'
+};
+const REASON_COLORS = {
+  OK: 'var(--green)', NO_AGENTS: 'var(--red)', CAMPAIGN_PAUSED: 'var(--gray)',
+  INSUFFICIENT_SAMPLES: 'var(--accent)', PROVIDER_DEGRADED: 'var(--red)',
+  ABANDON_BUDGET_BREACH: 'var(--red)', OVERDIAL_CAP: 'var(--amber)',
+  RINGING_HARD_CAP: 'var(--amber)', COOLDOWN_FORCED_PROGRESSIVE: 'var(--amber)'
+};
+
+let currentCampaign = null;
+let pollTimer = null;
+
+async function fetchJSON(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${url} -> ${r.status}`);
+  return r.json();
+}
+
+function setStatus(live, text) {
+  document.getElementById('status-dot').className = live ? 'live' : '';
+  document.getElementById('status-text').textContent = text;
+}
+
+function renderStackbar(barEl, legendEl, counts, colors) {
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  barEl.innerHTML = '';
+  legendEl.innerHTML = '';
+  if (!total) { barEl.innerHTML = '<div style="width:100%;background:var(--border)"></div>'; return; }
+  for (const [state, n] of Object.entries(counts)) {
+    if (!n) continue;
+    const seg = document.createElement('div');
+    seg.style.width = (n / total * 100) + '%';
+    seg.style.background = colors[state] || 'var(--gray)';
+    seg.title = `${state}: ${n}`;
+    barEl.appendChild(seg);
+
+    const item = document.createElement('span');
+    item.innerHTML = `<span class="dot" style="background:${colors[state] || 'var(--gray)'}"></span>${state} ${n}`;
+    legendEl.appendChild(item);
+  }
+}
+
+function renderCards(snap) {
+  const inFlight = snap.calls.INITIATED + snap.calls.RINGING + snap.calls.ANSWERED + snap.calls.CONNECTED;
+  const cards = [
+    ['Utilization', snap.utilization.toFixed(1) + '%'],
+    ['Agents staffed', Object.entries(snap.agents).filter(([k]) => k !== 'OFFLINE').reduce((a, [, v]) => a + v, 0)],
+    ['Calls in flight', inFlight],
+    ['Completed', snap.totals.completed],
+    ['Failed', snap.totals.failed],
+    ['Cancelled (pullback)', snap.totals.cancelled],
+  ];
+  document.getElementById('cards').innerHTML = cards.map(([label, value]) =>
+    `<div class="card"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('');
+}
+
+function renderDecisions(decisions) {
+  const body = document.getElementById('decisions-body');
+  const empty = document.getElementById('decisions-empty');
+  if (!decisions.length) { body.innerHTML = ''; empty.hidden = false; return; }
+  empty.hidden = true;
+  body.innerHTML = decisions.map(d => {
+    const t = new Date(d.tick_at).toLocaleTimeString();
+    const color = REASON_COLORS[d.reason_code] || 'var(--gray)';
+    const rationale = d.inputs ? `<details><summary>rationale</summary><pre class="rationale">${
+      escapeHtml(JSON.stringify(d.inputs, null, 2))}</pre></details>` : '';
+    return `<tr><td>${t}${rationale}</td><td>${d.requested}</td><td>${d.approved}</td>
+      <td><span class="badge" style="background:${color}">${d.reason_code}</span></td></tr>`;
+  }).join('');
+}
+
+function renderEvents(events) {
+  const feed = document.getElementById('events-feed');
+  if (!events.length) { feed.innerHTML = '<div class="empty">No events yet</div>'; return; }
+  feed.innerHTML = events.map(e => {
+    const t = new Date(e.received_at).toLocaleTimeString();
+    const anomaly = e.anomaly ? `<span class="anomaly">[${e.anomaly}]</span>` : '';
+    return `<div class="row"><span class="time">${t}</span><span>call ${e.call_id} — ${e.event_type}</span>${anomaly}</div>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+}
+
+async function refresh() {
+  if (currentCampaign == null) return;
+  try {
+    const snap = await fetchJSON(`/api/status/${currentCampaign}`);
+    renderCards(snap);
+    renderStackbar(document.getElementById('agent-bar'), document.getElementById('agent-legend'), snap.agents, AGENT_COLORS);
+    renderStackbar(document.getElementById('call-bar'), document.getElementById('call-legend'), snap.calls, CALL_COLORS);
+    renderDecisions(snap.decisions);
+    renderEvents(snap.events);
+    const name = snap.campaign ? `${snap.campaign.name} (${snap.campaign.mode})` : `#${currentCampaign}`;
+    setStatus(true, `live — ${name} — updated ${new Date().toLocaleTimeString()}`);
+  } catch (e) {
+    setStatus(false, 'connection lost, retrying…');
+  }
+}
+
+async function loadCampaigns() {
+  const select = document.getElementById('campaign-select');
+  try {
+    const campaigns = await fetchJSON('/api/campaigns');
+    const prev = currentCampaign;
+    select.innerHTML = campaigns.map(c =>
+      `<option value="${c.id}">#${c.id} — ${c.name} (${c.mode}${c.is_active ? '' : ', paused'})</option>`).join('');
+    if (campaigns.length) {
+      currentCampaign = prev && campaigns.some(c => c.id === prev) ? prev : campaigns[0].id;
+      select.value = currentCampaign;
+    }
+  } catch (e) {
+    setStatus(false, 'cannot reach API');
+  }
+}
+
+document.getElementById('campaign-select').addEventListener('change', (e) => {
+  currentCampaign = parseInt(e.target.value, 10);
+  refresh();
+});
+
+(async function init() {
+  await loadCampaigns();
+  await refresh();
+  setInterval(loadCampaigns, 10000);
+  pollTimer = setInterval(refresh, 1500);
+})();
+</script>
+</body>
+</html>

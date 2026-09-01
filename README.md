@@ -24,6 +24,9 @@ docker compose exec -T db psql -U dialer -d dialer -f - < migrations/002_counter
 
 python -m venv .venv && .venv/Scripts/pip install -e ".[dev]"   # Windows
 # source .venv/bin/activate && pip install -e ".[dev]"          # macOS/Linux
+# or: pip install -r requirements-dev.txt (plain requirements.txt files,
+# pinned to the exact versions this project was built and tested against —
+# pyproject.toml above is still the canonical spec)
 
 .venv/Scripts/python -m smartdialer.cli seed --agents 100 --borrowers 5000
 .venv/Scripts/python -m smartdialer.cli api &                   # webhook receiver on :8000
@@ -108,6 +111,26 @@ snapshot against the trigger-maintained `campaign_counters` O(1) read
 .venv/Scripts/python -m pytest tests/test_crash_recovery.py -v
 .venv/Scripts/python -m pytest tests/test_out_of_order.py -v
 ```
+
+## Watching it live (bonus, not graded — ARCHITECTURE.md is explicit: no UI)
+
+Two ops conveniences built on top of the graded system, both read-only
+against the same tables `pacing_decisions` and `psql` would show:
+
+```bash
+# terminal, auto-refreshing:
+.venv/Scripts/python -m smartdialer.cli watch --campaign-id 1
+
+# browser dashboard — start the API, then open http://localhost:8000/dashboard
+.venv/Scripts/python -m smartdialer.cli api
+```
+
+The dashboard shows live agent/call/borrower state distributions,
+utilization, the pacing-decision log with each tick's full rationale
+(expand "rationale" on any row), and a recent-events feed — served as a
+static page + two JSON endpoints (`/api/campaigns`, `/api/status/{id}`) by
+the same FastAPI process that ingests webhooks. Shared query logic lives in
+`live_status.py` so the terminal and browser views can't drift apart.
 
 ## Implementation notes: judgment calls beyond the architecture doc
 

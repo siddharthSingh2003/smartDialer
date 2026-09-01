@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from ..config import Settings
 from ..db import Db
 from ..repo.events import EventRepo
+from .dashboard import router as dashboard_router
 from .webhooks import router
 
 
@@ -20,6 +21,7 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="SmartDialer webhook ingest", lifespan=lifespan)
     app.include_router(router)
+    app.include_router(dashboard_router)
 
     @app.get("/healthz")
     async def healthz():
