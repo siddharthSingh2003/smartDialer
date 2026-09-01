@@ -241,11 +241,3 @@ What does _not_ break: agent reservation contention is proportional to
 `workers × tick_rate`, not agent count — `SKIP LOCKED` means workers never
 queue behind each other, and a larger candidate pool only _reduces_ CAS
 collision rate.
-
-## Architecture
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design (state machines,
-pacing derivation, safety rule table, failure scenarios) and
-[docs/adr/](docs/adr/) for the six architecture decision records. The answer
-to the assignment's closing question is in
-[docs/final-answer.md](docs/final-answer.md).
