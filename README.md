@@ -1,8 +1,7 @@
 # SmartDialer
 
 Progressive + predictive outbound dialer with a non-bypassable safety
-boundary. Built end to end from [ARCHITECTURE.md](ARCHITECTURE.md) — that
-document is the full design rationale; this README is the "how to run it."
+boundary. this README is the "how to run it."
 
 ## Non-goals
 
@@ -59,7 +58,7 @@ tables before each test for isolation.
 Each scenario runs on a `VirtualClock` against the real allocator, safety
 controller, and Postgres — nothing is stubbed. Default scenario durations are
 shortened from the assignment's illustrative 30-minute runs so the full suite
-finishes in a few minutes of *wall* time (the virtual clock compresses
+finishes in a few minutes of _wall_ time (the virtual clock compresses
 simulated time, not the database round trips each tick makes); pass
 `--duration`/`--agents` for a longer, denser run. Output: one CSV per
 scenario plus four charts per scenario and a `summary.md` in
@@ -93,15 +92,15 @@ snapshot against the trigger-maintained `campaign_counters` O(1) read
 
 ## Invariants (see ARCHITECTURE.md §7 for the full table)
 
-| # | Invariant | Enforced by | Proven by |
-|---|---|---|---|
-| I1 | An agent is reserved by at most one worker at any instant | Conditional `UPDATE` on `(state, version)` | `test_agent_reservation.py`, `property/test_concurrent_reservation.py` |
-| I2 | A borrower has at most one non-terminal call | `FOR UPDATE SKIP LOCKED` claim + `UNIQUE(idempotency_key)` | `test_borrower_claim.py` |
-| I5 | A provider event is applied at most once | `UNIQUE(provider, provider_event_id)` | `test_event_dedup.py` |
-| I6/I7 | Call state rank is monotonically non-decreasing; terminal never reopens | Rank guard in `repo/calls.py::ADVANCE` | `test_out_of_order.py`, `property/test_event_permutations.py` |
-| I8 | No agent stays in `RESERVED`/`DIALING` longer than its lease | Reaper at 1 Hz | `test_crash_recovery.py` |
-| I9 | The pacing engine cannot place a call | No allocator/provider reference reachable from its types | `test_safety_boundary.py` (AST import-graph assertion) |
-| I10 | The safety controller cannot be disabled | No boolean flag exists; thresholds clamped in `SafetyLimits.__post_init__` | `test_safety_controller.py` |
+| #     | Invariant                                                               | Enforced by                                                                | Proven by                                                              |
+| ----- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| I1    | An agent is reserved by at most one worker at any instant               | Conditional `UPDATE` on `(state, version)`                                 | `test_agent_reservation.py`, `property/test_concurrent_reservation.py` |
+| I2    | A borrower has at most one non-terminal call                            | `FOR UPDATE SKIP LOCKED` claim + `UNIQUE(idempotency_key)`                 | `test_borrower_claim.py`                                               |
+| I5    | A provider event is applied at most once                                | `UNIQUE(provider, provider_event_id)`                                      | `test_event_dedup.py`                                                  |
+| I6/I7 | Call state rank is monotonically non-decreasing; terminal never reopens | Rank guard in `repo/calls.py::ADVANCE`                                     | `test_out_of_order.py`, `property/test_event_permutations.py`          |
+| I8    | No agent stays in `RESERVED`/`DIALING` longer than its lease            | Reaper at 1 Hz                                                             | `test_crash_recovery.py`                                               |
+| I9    | The pacing engine cannot place a call                                   | No allocator/provider reference reachable from its types                   | `test_safety_boundary.py` (AST import-graph assertion)                 |
+| I10   | The safety controller cannot be disabled                                | No boolean flag exists; thresholds clamped in `SafetyLimits.__post_init__` | `test_safety_controller.py`                                            |
 
 ## Failure demos
 
@@ -199,11 +198,11 @@ about it in the abstract:
 6. **The reaper compares every lease against the caller's own
    `clock.now()`, not Postgres' bare `now()`.** This is the deeper bug note
    5's fix exposed: leases are written as `to_timestamp(clock.now() +
-   duration)`, and comparing that against Postgres' real `now()` happens to
+duration)`, and comparing that against Postgres' real `now()` happens to
    work under `RealClock` (clock time == wall time) but not under the
    simulator's `VirtualClock`, which is seeded far ahead of real elapsed
    time and races further ahead as ticks process. A lease computed from an
-   already-advanced virtual "now" could require far more *real* wall-clock
+   already-advanced virtual "now" could require far more _real_ wall-clock
    time to satisfy than the simulation's entire run takes — so it would
    simply never expire, and every agent would still get stuck after one
    call, just less obviously than note 5 alone. This affected every
@@ -217,7 +216,7 @@ about it in the abstract:
 ## Why this stack
 
 Every hard problem in this assignment is either mutual exclusion or
-idempotency. PostgreSQL solves both natively and *transactionally*: a
+idempotency. PostgreSQL solves both natively and _transactionally_: a
 conditional `UPDATE` gives compare-and-swap agent reservation, `SELECT ... FOR
 UPDATE SKIP LOCKED` gives lock-free work partitioning across N workers, a
 `UNIQUE` constraint gives exactly-once provider-event application, and
@@ -240,16 +239,16 @@ degrade — addressed in the section below rather than hand-waved away.
    primary-key read.
 2. **~3,000 agents** — the counters row itself becomes hot-row contention.
    Fix: shard it `(campaign_id, shard_id)` across N shards; sum on read.
-3. **~10,000 agents** — provider *events*, not calls, are the volume driver
+3. **~10,000 agents** — provider _events_, not calls, are the volume driver
    (~6 events/call). Fix, in order: batch-insert webhooks, partition
    `provider_events` by day, and only then consider a durable queue in front
    of ingest.
 4. **~10,000+ agents** — single Postgres write node. Fix: campaigns are a
    natural shard key (they share no agents or borrowers).
 
-What does *not* break: agent reservation contention is proportional to
+What does _not_ break: agent reservation contention is proportional to
 `workers × tick_rate`, not agent count — `SKIP LOCKED` means workers never
-queue behind each other, and a larger candidate pool only *reduces* CAS
+queue behind each other, and a larger candidate pool only _reduces_ CAS
 collision rate.
 
 ## Architecture
