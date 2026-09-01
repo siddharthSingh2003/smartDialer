@@ -3,15 +3,6 @@
 Progressive + predictive outbound dialer with a non-bypassable safety
 boundary. this README is the "how to run it."
 
-## Non-goals
-
-- No real-time media handling, no SIP, no audio.
-- No ML model. A statistical estimator with a confidence bound (Wilson
-  interval) is deliberate, not a shortcut — see ADR-0006.
-- No horizontal-scale test at 10,000 agents. §15 of the architecture doc
-  reasons about the bottleneck chain instead of pretending to demo it.
-- No UI. CSV + matplotlib is the simulation deliverable.
-
 ## Quick start
 
 ```bash
